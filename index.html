@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laser Security Alarm System — Digital Electronics Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dark-lab-theme">
+  <!-- Top Academic Metadata Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-badge-row">
+        <span class="uni-badge">SRMU</span>
+        <span class="project-tag">DIGITAL ELECTRONICS MINI-PROJECT</span>
+        <span class="version-tag">v2.4 [LAB SIMULATOR]</span>
+      </div>
+      <h1 class="project-title">
+        <span class="laser-icon">&#x26A1;</span> Laser Security Alarm System
+        <span class="title-sub">Interactive Optical Bench & Circuit Simulator</span>
+      </h1>
+      <p class="project-credits">
+        <strong>Academic Project by:</strong> <span class="student-name">Shahid Ali</span> & <span class="student-name">Ravi Shankar</span> 
+        <span class="bullet-sep">&bull;</span> 
+        <span class="uni-name">Shri Ramswaroop Memorial University (SRMU)</span>
+        <span class="bullet-sep">&bull;</span>
+        <span class="dept-name">Faculty of Electrical & Electronics Engineering</span>
+      </p>
+    </div>
+
+    <div class="header-controls">
+      <!-- Master Audio Buzzer Button -->
+      <button id="btnAudioToggle" class="btn-audio active" title="Toggle 2.4kHz Piezoelectric Audio Buzzer (M)">
+        <span class="audio-icon">&#128266;</span>
+        <div class="btn-text-group">
+          <span class="btn-label">AUDIO BUZZER</span>
+          <span class="btn-status" id="audioStatusText">ACTIVE (2.4 kHz)</span>
+        </div>
+      </button>
+
+      <!-- Master System Arm Switch -->
+      <div class="arm-switch-container" title="Arm / Disarm Alarm System (A)">
+        <span class="arm-label">SYSTEM STATE:</span>
+        <button id="btnSystemArm" class="btn-arm armed">
+          <span class="arm-indicator"></span>
+          <span id="armStatusText" class="arm-text">ARMED</span>
+        </button>
+      </div>
+
+      <!-- Quick Theory / Circuit Info Button -->
+      <button id="btnTheoryModal" class="btn-icon-theory" title="Circuit Schematic & Digital Logic Reference">
+        <span class="icon">&#128218;</span> <span>Circuit Theory</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Simulator Container -->
+  <main class="main-dashboard">
+    <!-- Top Alert Banner (Hidden when normal, shows latch/armed/warning states) -->
+    <div id="systemAlertBanner" class="alert-banner standby">
+      <div class="alert-content">
+        <span class="alert-pulse-dot"></span>
+        <span id="alertBannerText" class="alert-text">SYSTEM ARMED — LASER SURVEILLANCE PERIMETER ACTIVE (NO INTRUSION)</span>
+      </div>
+      <div class="alert-actions">
+        <button id="btnResetLatchBanner" class="btn-action-small hidden" title="Reset Latched Alarm (R)">
+          &#x21BA; Reset Latched Alarm
+        </button>
+        <span id="quickKeyHint" class="quick-hint">Space: Block Beam | R: Reset Latch | M: Mute | P: Auto-Patrol</span>
+      </div>
+    </div>
+
+    <!-- Core Grid Layout -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Optical Bench Canvas + Circuit Controls -->
+      <section class="panel bench-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-icon">&#128308;</span>
+            <h2>Interactive Optical Bench & Schematic Canvas</h2>
+          </div>
+          <div class="canvas-action-bar">
+            <button id="btnQuickBlock" class="btn-action-pill" title="Press Spacebar to toggle obstruction">
+              <span class="pill-icon">&#9995;</span> <span id="quickBlockText">Block Beam (Space)</span>
+            </button>
+            <button id="btnAutoPatrol" class="btn-action-pill secondary" title="Automatically patrol intruder back and forth (P)">
+              <span class="pill-icon">&#9654;</span> <span id="autoPatrolText">Auto-Patrol Intruder</span>
+            </button>
+            <button id="btnResetIntruder" class="btn-action-pill ghost" title="Reset Intruder to Safe Position">
+              &#8634; Reset Position
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-wrapper" id="benchCanvasContainer">
+          <canvas id="benchCanvas" width="920" height="420"></canvas>
+          
+          <!-- Interactive Canvas Overlays & Floating HUD -->
+          <div class="canvas-hud">
+            <div class="hud-item beam-hud" id="hudBeamStatus">
+              <span class="hud-label">ZONE 1 (PRIMARY):</span>
+              <span class="hud-val normal" id="hudBeamVal">CLEAR</span>
+            </div>
+            <div class="hud-item dual-hud hidden" id="hudDualBeamStatus">
+              <span class="hud-label">ZONE 2 (SECONDARY):</span>
+              <span class="hud-val normal" id="hudDualBeamVal">CLEAR</span>
+            </div>
+            <div class="hud-item ldr-hud">
+              <span class="hud-label">R_LDR:</span>
+              <span class="hud-val" id="hudLdrVal">1.2 k&Omega;</span>
+            </div>
+            <div class="hud-item vbe-hud">
+              <span class="hud-label">V_BE (BASE):</span>
+              <span class="hud-val" id="hudVbeVal">0.45 V</span>
+            </div>
+            <div class="hud-item q1-hud">
+              <span class="hud-label">Q1 TRANSISTOR:</span>
+              <span class="hud-val normal" id="hudQ1Val">CUTOFF (OFF)</span>
+            </div>
+            <div class="hud-item output-hud">
+              <span class="hud-label">LOGIC OUT (Y):</span>
+              <span class="hud-val normal" id="hudOutputVal">0 (LOW)</span>
+            </div>
+          </div>
+
+          <!-- Touch/Drag instruction overlay -->
+          <div class="canvas-hint" id="canvasDragHint">
+            <span>&#10022; Drag the black Intruder block across the glowing laser path &bull; or click "Block Beam"</span>
+          </div>
+        </div>
+
+        <!-- Hardware Calibration & Sensitivity Controls -->
+        <div class="calibration-section">
+          <div class="sub-header">
+            <h3><span class="icon">&#9881;</span> Hardware Calibration & Real-World Parameters</h3>
+            <span class="sub-tag">Academic Limitations & Variable Tuning</span>
+          </div>
+
+          <div class="controls-grid">
+            <!-- Preset Potentiometer Slider -->
+            <div class="control-card">
+              <div class="control-header">
+                <label for="sliderPresetResistor">
+                  <strong>Preset Sensitivity Potentiometer (R_PRESET)</strong>
+                  <span class="formula-note">Voltage Divider: V_B = V_CC &times; [ R_LDR / (R_P + R_LDR) ]</span>
+                </label>
+                <span class="val-badge" id="valPresetResistor">10.0 k&Omega;</span>
+              </div>
+              <input type="range" id="sliderPresetResistor" min="1" max="100" step="0.5" value="10">
+              <div class="slider-marks">
+                <span>1 k&Omega; (Low Sens.)</span>
+                <span>10 k&Omega; (Optimal)</span>
+                <span>50 k&Omega;</span>
+                <span>100 k&Omega; (High Sens.)</span>
+              </div>
+            </div>
+
+            <!-- Ambient Room Light Slider -->
+            <div class="control-card">
+              <div class="control-header">
+                <label for="sliderAmbientLight">
+                  <strong>Ambient Room Light Exposure</strong>
+                  <span class="formula-note">Simulates daylight/lamps lowering R_LDR (False Negatives)</span>
+                </label>
+                <span class="val-badge" id="valAmbientLight">15 % (Indoor Lab)</span>
+              </div>
+              <input type="range" id="sliderAmbientLight" min="0" max="100" step="1" value="15">
+              <div class="preset-buttons-row">
+                <button class="btn-micro" data-ambient="0">Darkroom (0%)</button>
+                <button class="btn-micro active" data-ambient="15">Lab (15%)</button>
+                <button class="btn-micro" data-ambient="50">Bright Office (50%)</button>
+                <button class="btn-micro" data-ambient="90">Direct Sun (90%)</button>
+              </div>
+            </div>
+
+            <!-- Toggle Features -->
+            <div class="control-card feature-toggles-card">
+              <div class="toggle-group-item">
+                <div class="toggle-text">
+                  <strong>Alarm Latch Mode</strong>
+                  <p>Locks alarm at Logic 1 upon breach until manual reset button</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="chkAlarmLatch">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="toggle-group-item">
+                <div class="toggle-text">
+                  <strong>Dual-Beam Coverage (Zone 1 + 2)</strong>
+                  <p>Parallel optical security beams with OR logic for broad perimeter</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="chkDualBeam">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Sensitivity Calibration Meter / Advice -->
+            <div class="control-card advice-card" id="calibrationAdviceCard">
+              <div class="advice-header">
+                <span class="status-indicator-dot normal" id="adviceDot"></span>
+                <span class="advice-title" id="adviceTitle">Optimal Calibration</span>
+              </div>
+              <p class="advice-desc" id="adviceDesc">
+                Circuit is in optimal operating range. Laser interruption will produce V_BE &ge; 0.7V to cleanly saturate the NPN transistor.
+              </p>
+              <div class="vbe-margin-bar-container">
+                <div class="margin-label-row">
+                  <span>V_BE Margin vs 0.7V Cutoff Threshold:</span>
+                  <span id="marginValText">+0.00 V</span>
+                </div>
+                <div class="margin-bar-track">
+                  <div class="threshold-marker" title="0.7V Silicon Transistor V_BE Threshold"></div>
+                  <div class="margin-bar-fill" id="vbeMarginBar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Digital Logic, Architecture Flow & Oscilloscope -->
+      <section class="panel analysis-panel">
+        <!-- Live Truth Table Panel -->
+        <div class="sub-panel truth-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-icon">&#128203;</span>
+              <h3>Digital Electronics Logic & Live Truth Table</h3>
+            </div>
+            <span class="logic-badge">Active State Tracking</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="truth-table" id="logicTruthTable">
+              <thead>
+                <tr>
+                  <th>State</th>
+                  <th>Laser Path</th>
+                  <th>LDR Resist. (R)</th>
+                  <th>Base Volt. (V_BE)</th>
+                  <th>Transistor Q1</th>
+                  <th>Logic Out (Y)</th>
+                  <th>Buzzer & LED</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr id="rowNormal" class="state-row active-row normal-state">
+                  <td><span class="state-badge normal">S0: NORMAL</span></td>
+                  <td>Unblocked (Laser on LDR)</td>
+                  <td>Low (&lt; 2 k&Omega;)</td>
+                  <td>&lt; 0.7 V</td>
+                  <td>CUTOFF (OFF)</td>
+                  <td><span class="bit-badge zero">0 (LOW)</span></td>
+                  <td>SILENT (0V)</td>
+                </tr>
+                <tr id="rowAlarm" class="state-row alarm-state">
+                  <td><span class="state-badge alarm">S1: INTRUSION</span></td>
+                  <td>Blocked (Interrupted)</td>
+                  <td>High (&gt; 50 k&Omega;)</td>
+                  <td>&ge; 0.7 V</td>
+                  <td>SATURATION (ON)</td>
+                  <td><span class="bit-badge one">1 (HIGH)</span></td>
+                  <td>ALARM (5V / 2.4kHz)</td>
+                </tr>
+                <tr id="rowFalseNeg" class="state-row warning-state">
+                  <td><span class="state-badge warning">S2: FAULT / AMBIENT</span></td>
+                  <td>Blocked (High Ambient)</td>
+                  <td>Moderate (&lt; 5 k&Omega;)</td>
+                  <td>&lt; 0.7 V (Miscalibrated)</td>
+                  <td>CUTOFF (MISSED)</td>
+                  <td><span class="bit-badge zero">0 (FAIL)</span></td>
+                  <td>FALSE NEGATIVE</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Animated Architecture Flow Diagram -->
+          <div class="block-diagram-container">
+            <div class="diagram-title">System Signal Flow Architecture:</div>
+            <div class="flow-blocks">
+              <div class="flow-block" id="blockLaser">
+                <span class="block-icon">&#128262;</span>
+                <span class="block-name">Laser Diode</span>
+                <span class="block-sub">650nm Red Beam</span>
+                <span class="signal-dot"></span>
+              </div>
+              <div class="flow-arrow" id="arrowLaserToLdr">&#10142;</div>
+              
+              <div class="flow-block" id="blockLdr">
+                <span class="block-icon">&#9681;</span>
+                <span class="block-name">LDR Sensor</span>
+                <span class="block-sub" id="blockLdrSub">R = 1.2 k&Omega;</span>
+                <span class="signal-dot"></span>
+              </div>
+              <div class="flow-arrow" id="arrowLdrToQ1">&#10142;</div>
+
+              <div class="flow-block" id="blockTransistor">
+                <span class="block-icon">&#9091;</span>
+                <span class="block-name">NPN BC547</span>
+                <span class="block-sub" id="blockTransistorSub">V_BE = 0.45V (Cutoff)</span>
+                <span class="signal-dot"></span>
+              </div>
+              <div class="flow-arrow" id="arrowQ1ToBuzzer">&#10142;</div>
+
+              <div class="flow-block" id="blockBuzzer">
+                <span class="block-icon">&#128276;</span>
+                <span class="block-name">Piezo Buzzer</span>
+                <span class="block-sub" id="blockBuzzerSub">Output: 0 (OFF)</span>
+                <span class="signal-dot"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Oscilloscope Screen -->
+        <div class="sub-panel osc-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-icon">&#128200;</span>
+              <h3>Real-Time Digital Waveform Oscilloscope</h3>
+            </div>
+            <div class="osc-controls">
+              <span class="osc-legend">
+                <span class="legend-chip ch1"><span class="chip-color"></span> CH1: V_BE (0-5V)</span>
+                <span class="legend-chip ch2"><span class="chip-color"></span> CH2: Y_OUT (0 / 5V)</span>
+              </span>
+              <button id="btnPauseOsc" class="btn-micro" title="Freeze / Resume waveform">Pause</button>
+              <button id="btnClearOsc" class="btn-micro" title="Clear Waveform">Clear</button>
+            </div>
+          </div>
+
+          <div class="oscilloscope-wrapper">
+            <canvas id="oscCanvas" width="600" height="170"></canvas>
+            <div class="osc-scale-overlay">
+              <span class="y-label y-5">5.0 V (Logic 1)</span>
+              <span class="y-label y-07">0.7 V (V_BE Threshold)</span>
+              <span class="y-label y-0">0.0 V (Logic 0)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Intrusion Event Log & Data Export Table -->
+        <div class="sub-panel log-panel">
+          <div class="panel-header">
+            <div class="panel-title-group">
+              <span class="panel-icon">&#128220;</span>
+              <h3>Intrusion Event Log & Audit Records</h3>
+            </div>
+            <div class="log-actions">
+              <span class="log-count-badge" id="logCountBadge">0 Events</span>
+              <button id="btnClearLog" class="btn-micro" title="Clear all logged events">Clear</button>
+              <button id="btnExportCSV" class="btn-micro accent" title="Export timestamped records as CSV">&#128229; Export CSV</button>
+            </div>
+          </div>
+
+          <div class="log-table-container">
+            <table class="event-table" id="eventTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Timestamp</th>
+                  <th>Zone / Optical Path</th>
+                  <th>V_BE</th>
+                  <th>Logic Transition</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="eventTableBody">
+                <tr class="empty-row" id="emptyLogPrompt">
+                  <td colspan="7">No security breaches recorded yet. Drag intruder across laser beam to trigger an event.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Circuit Theory & Academic Specifications Modal -->
+  <div id="theoryModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">&#128214;</span>
+          <h2>Digital Electronics Project Specifications & Theory</h2>
+        </div>
+        <button id="btnCloseModal" class="btn-close-modal" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="theory-meta">
+          <p><strong>Project:</strong> Laser Security Alarm System using LDR & NPN Transistor Switch</p>
+          <p><strong>Authors:</strong> Shahid Ali &amp; Ravi Shankar &bull; <strong>Institution:</strong> Shri Ramswaroop Memorial University (SRMU)</p>
+          <p><strong>Subject:</strong> Digital Electronics &bull; Academic Mini-Project</p>
+        </div>
+
+        <div class="theory-grid">
+          <div class="theory-card">
+            <h4>1. Circuit Working Principle</h4>
+            <p>
+              A semiconductor laser diode (wavelength 650nm) projects an intense optical beam onto a Light Dependent Resistor (LDR). 
+              The LDR forms the bottom leg of a voltage divider with a preset potentiometer (R<sub>PRESET</sub>):
+            </p>
+            <div class="formula-box">
+              <span class="formula-main">V<sub>B</sub> = V<sub>CC</sub> &times; [ R<sub>LDR</sub> / (R<sub>PRESET</sub> + R<sub>LDR</sub>) ]</span>
+            </div>
+            <p>
+              When illuminated by the laser, R<sub>LDR</sub> &approx; 1 k&Omega;. Hence, V<sub>B</sub> &lt; 0.7 V, holding the BC547 NPN transistor in <strong>Cutoff</strong> (collector current I<sub>C</sub> &approx; 0, Buzzer OFF).
+              When an intruder obstructs the beam, R<sub>LDR</sub> spikes to &gt; 100 k&Omega;, pulling V<sub>B</sub> &ge; 0.7 V. 
+              This drives the transistor into <strong>Saturation</strong>, completing the circuit to ground and energizing the 2.4kHz piezoelectric buzzer and LED alert.
+            </p>
+          </div>
+
+          <div class="theory-card">
+            <h4>2. Transistor Switch Characteristics</h4>
+            <ul>
+              <li><strong>Cutoff State (V<sub>BE</sub> &lt; 0.7V):</strong> I<sub>B</sub> = 0, I<sub>C</sub> = 0. Output logic is Y = 0. Load voltage across buzzer is 0V.</li>
+              <li><strong>Saturation State (V<sub>BE</sub> &ge; 0.7V):</strong> Base-emitter forward-biased (V<sub>CE(sat)</sub> &approx; 0.2V). Output logic is Y = 1. Load voltage &approx; 4.8V, powering buzzer and alert LED.</li>
+            </ul>
+          </div>
+
+          <div class="theory-card">
+            <h4>3. Project Limitations & Academic Enhancements</h4>
+            <ul>
+              <li><strong>Ambient Light Interference:</strong> In daylight or bright rooms, diffuse light keeps $R_{LDR}$ lower than in total darkness. If $R_{PRESET}$ is poorly adjusted, $V_{BE}$ may not reach $0.7\text{V}$ even when the laser is blocked (False Negative). Optical hoods and potentiometer tuning solve this.</li>
+              <li><strong>Alarm Latch Need:</strong> Without a latch, the buzzer silences the instant the intruder passes the beam. Incorporating an SR Latch (555 IC or cross-coupled NAND gates) locks the alarm until reset by security staff.</li>
+              <li><strong>Dual-Beam Coverage:</strong> A single beam can be ducked or stepped over. Dual parallel beams combined via digital OR logic ensure fail-safe perimeter enclosure.</li>
+            </ul>
+          </div>
+
+          <div class="theory-card">
+            <h4>4. Bill of Materials (Simulated Components)</h4>
+            <table class="bom-table">
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th>Designator</th>
+                  <th>Specification / Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Laser Diode Module</td><td>TX1</td><td>650nm Red, 5mW, 5V DC</td></tr>
+                <tr><td>Light Dependent Resistor</td><td>LDR1</td><td>5mm CdS Photoresistor ($1\text{k}\Omega$ light, $200\text{k}\Omega$ dark)</td></tr>
+                <tr><td>Preset Potentiometer</td><td>R_PRESET</td><td>$10\text{k}\Omega$ to $100\text{k}\Omega$ Linear Trimmer</td></tr>
+                <tr><td>NPN BJT Transistor</td><td>Q1</td><td>BC547 / 2N2222 ($h_{FE} \approx 200$, $V_{BE(on)} = 0.7\text{V}$)</td></tr>
+                <tr><td>Piezoelectric Buzzer</td><td>BZ1</td><td>2.4 kHz Resonant, 85dB SPL, 5V DC</td></tr>
+                <tr><td>Indicator LEDs</td><td>LED1, LED2</td><td>5mm High-Efficiency Red &amp; Green</td></tr>
+                <tr><td>Power Supply</td><td>VCC</td><td>+5.0V Regulated DC Rail</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnDismissModal" class="btn-action-pill">Close Reference</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Context Activation Prompt (Shown if browser blocked initial autoplay) -->
+  <div id="audioUnlockPrompt" class="audio-prompt-banner hidden">
+    <span>&#128266; Click anywhere to enable 2.4kHz Web Audio Piezoelectric Buzzer playback</span>
+    <button id="btnEnableAudioPrompt" class="btn-micro accent">Enable Audio</button>
+  </div>
+
+  <!-- Footer / Status Bar -->
+  <footer class="app-footer">
+    <div class="footer-left">
+      <span><strong>Digital Electronics Simulator</strong> &bull; Shahid Ali &amp; Ravi Shankar &bull; Shri Ramswaroop Memorial University</span>
+    </div>
+    <div class="footer-center">
+      <span class="system-health-pill active" id="systemHealthPill"><span class="health-dot"></span> SYSTEM HEALTH: NOMINAL</span>
+    </div>
+    <div class="footer-right">
+      <span>Simulation Clock: <span id="clockDisplay" class="clock-mono">00:00:00</span></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
